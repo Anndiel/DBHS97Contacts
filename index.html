@@ -72,6 +72,7 @@
 
   <input type="text" id="name" placeholder="Classmate Name">
   <input type="text" id="contact" placeholder="Contact Number">
+  <input type="text" id="address" placeholder="Address">
   <button onclick="addContact()">Add Contact</button>
 
   <div id="list"></div>
@@ -100,14 +101,15 @@ function renderList(data) {
   list.innerHTML = "";
 
   data.forEach(row => {
-    const showNumber = enteredPassword === ADMIN_PASSWORD;
+    const showDetails = enteredPassword === ADMIN_PASSWORD;
 
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
       <div>
         <strong>${row[1]}</strong><br>
-        ${showNumber ? row[2] : "🔒 Hidden"}
+        ${showDetails ? row[2] : "🔒 Contact Hidden"}<br>
+        ${showDetails ? row[3] : "🔒 Address Hidden"}
       </div>
       <button class="delete-btn" onclick="deleteContact('${row[0]}')">
         Delete
@@ -128,12 +130,22 @@ function filterList() {
 function addContact() {
   const name = document.getElementById("name").value;
   const contact = document.getElementById("contact").value;
+  const address = document.getElementById("address").value;
   const password = document.getElementById("password").value;
 
   fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({ action:"add", name, contact, password })
+    body: JSON.stringify({ 
+      action:"add", 
+      name, 
+      contact, 
+      address,
+      password 
+    })
   }).then(() => {
+    document.getElementById("name").value = "";
+    document.getElementById("contact").value = "";
+    document.getElementById("address").value = "";
     loadData();
   });
 }
@@ -143,13 +155,16 @@ function deleteContact(id) {
 
   fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({ action:"delete", id, password })
+    body: JSON.stringify({ 
+      action:"delete", 
+      id, 
+      password 
+    })
   }).then(() => {
     loadData();
   });
 }
 
-// Re-render whenever password changes
 document.getElementById("password").addEventListener("input", () => {
   renderList(allData);
 });
