@@ -73,7 +73,7 @@
   <input type="text" id="name" placeholder="Classmate Name">
   <input type="text" id="contact" placeholder="Contact Number">
   <input type="text" id="address" placeholder="Address">
-  <button onclick="addContact()">Add Contact</button>
+  <button onclick="addOrUpdate()">Add Contact</button>
 
   <div id="list"></div>
 
@@ -84,6 +84,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbz0kJHlVtS_ro0hB3WlqRNM
 const ADMIN_PASSWORD = "Abdiel2026"; // same as Apps Script
 
 let allData = [];
+let editId = null;
 
 function loadData() {
   fetch(API_URL)
@@ -105,8 +106,10 @@ function renderList(data) {
 
     const div = document.createElement("div");
     div.className = "card";
+    div.style.cursor = "pointer";
+
     div.innerHTML = `
-      <div>
+      <div onclick="selectRecord('${row[0]}')">
         <strong>${row[1]}</strong><br>
         ${showDetails ? row[2] : "🔒 Contact Hidden"}<br>
         ${showDetails ? row[3] : "🔒 Address Hidden"}
@@ -119,35 +122,66 @@ function renderList(data) {
   });
 }
 
-function filterList() {
-  const term = document.getElementById("search").value.toLowerCase();
-  const filtered = allData.filter(row =>
-    row[1].toLowerCase().includes(term)
-  );
-  renderList(filtered);
+function selectRecord(id) {
+  const record = allData.find(r => r[0] == id);
+  editId = id;
+
+  document.getElementById("name").value = record[1];
+  document.getElementById("contact").value = record[2];
+  document.getElementById("address").value = record[3];
+
+  document.querySelector("button[onclick='addOrUpdate()']").innerText = "Update Contact";
 }
 
-function addContact() {
+function addOrUpdate() {
   const name = document.getElementById("name").value;
   const contact = document.getElementById("contact").value;
   const address = document.getElementById("address").value;
   const password = document.getElementById("password").value;
 
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ 
-      action:"add", 
-      name, 
-      contact, 
-      address,
-      password 
-    })
-  }).then(() => {
-    document.getElementById("name").value = "";
-    document.getElementById("contact").value = "";
-    document.getElementById("address").value = "";
-    loadData();
-  });
+  if (!name || !contact || !address) {
+    alert("Please fill all fields");
+    return;
+  }
+
+  if (editId) {
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "update",
+        id: editId,
+        name,
+        contact,
+        address,
+        password
+      })
+    }).then(() => {
+      resetForm();
+      loadData();
+    });
+  } else {
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "add",
+        name,
+        contact,
+        address,
+        password
+      })
+    }).then(() => {
+      resetForm();
+      loadData();
+    });
+  }
+}
+
+function resetForm() {
+  editId = null;
+  document.getElementById("name").value = "";
+  document.getElementById("contact").value = "";
+  document.getElementById("address").value = "";
+  document.querySelector("button[onclick='addOrUpdate()']").innerText = "Add Contact";
 }
 
 function deleteContact(id) {
@@ -155,14 +189,12 @@ function deleteContact(id) {
 
   fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({ 
-      action:"delete", 
-      id, 
-      password 
+    body: JSON.stringify({
+      action: "delete",
+      id,
+      password
     })
-  }).then(() => {
-    loadData();
-  });
+  }).then(() => loadData());
 }
 
 document.getElementById("password").addEventListener("input", () => {
